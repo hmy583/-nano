@@ -6,6 +6,12 @@ import java.lang.Exception;
 import java.util.Random;
 
 public class account {
+	public String transactionId; //包含交易的哈希*
+    public PublicKey sender; //发件人地址/公钥。
+    public PublicKey reciepient; //收件人地址/公钥。
+    public float value; //包含我们要发送给收件人的金额。
+    private static int sequence = 0; //粗略计算已生成的事务数
+
     //地址即是账户的公钥
     private final String privateKey;
 
@@ -104,8 +110,27 @@ public class account {
 
 
     }
+    public byte[] signature1;
+    //创建签名
+    public void generateSignature(PrivateKey privateKey) {
+        String data = StringUtil.getStringFromKey(sender) + StringUtil.getStringFromKey(reciepient) + Float.toString(value)	;
+        byte[] signature1 = StringUtil.applyECDSASig(privateKey,data);
+    }
+    
+    //验证签名
+    public boolean verifySignature() {
+        String data = StringUtil.getStringFromKey(sender) + StringUtil.getStringFromKey(reciepient) + Float.toString(value)	;
+        return StringUtil.verifyECDSASig(sender, data, signature1);
+    }
 
-
+    private String calulateHash() {
+        sequence++; //增加序列以避免两个具有相同哈希值的相同事务
+        return StringUtil.applySha256(
+                StringUtil.getStringFromKey(sender) +
+                        StringUtil.getStringFromKey(reciepient) +
+                        Float.toString(value) + sequence
+        );
+    }
 
 
 }
