@@ -1,30 +1,46 @@
 package Nano;
 
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
 import java.util.LinkedList;
 import java.lang.Exception;
 import java.util.Random;
 
 public class account {
-	public String transactionId; //包含交易的哈希*
-    public PublicKey sender; //发件人地址/公钥。
-    public PublicKey reciepient; //收件人地址/公钥。
-    public float value; //包含我们要发送给收件人的金额。
-    private static int sequence = 0; //粗略计算已生成的事务数
+    public String transactionId; //包含交易的哈希*
+    public PrivateKey privateKey;
+    public PublicKey publicKey;
+    
+    public void generateKeyPair() {
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("ECDSA","BC");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            ECGenParameterSpec ecSpec = new ECGenParameterSpec("prime192v1");
+            // 初始化密钥生成器并生成密钥对
+            keyGen.initialize(ecSpec, random); //256
+            KeyPair keyPair = keyGen.generateKeyPair();
+            // 从密钥对设置公钥和私钥
+            privateKey = keyPair.getPrivate();
+            publicKey = keyPair.getPublic();
 
-    //地址即是账户的公钥
-    private final String privateKey;
-
-    {
-        privateKey = generateString.getStringRandom(16);
+        }catch(Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    //私钥
-    private final String address;
-
-    {
-        address = StringUtil.applySha256(this.privateKey);
-    }
+//    //地址即是账户的公钥
+//    private final String privateKey1;
+//
+//    {
+//        String privateKey1 = generateString.getStringRandom(16);
+//    }
+//
+//    //私钥
+//    private final String address;
+//
+//    {
+//        address = StringUtil.applySha256(this.privateKey1);
+//    }
     String signature;
     private int balance;//余额
     //由地址哈希计算出私钥
@@ -45,11 +61,11 @@ public class account {
         this.balance=a.work;
         //创世账户减少相应数量
         genesis.genesisBalance-=a.work;
-        a.address=this.address;
-        a.representative=this.address;
+        a.address=privateKey.toString();
+        a.representative=privateKey.toString();
         a.hash=a.calculateHash();
         this.ownBlockchain.add(a);
-        genesis.genesisAccount.add(this.address);
+        genesis.genesisAccount.add(privateKey.toString());
         }
 
 
@@ -62,11 +78,11 @@ public class account {
             openBlock a=new openBlock();
             a.work=amount;
             this.balance=a.work;
-            a.address=this.address;
-            a.representative=this.address;
+            a.address=privateKey.toString();
+            a.representative=privateKey.toString();
             a.hash=a.calculateHash();
             this.ownBlockchain.add(a);
-            genesis.genesisAccount.add(this.address);
+            genesis.genesisAccount.add(privateKey.toString());
         }
     }
     //发送交易函数
@@ -77,7 +93,7 @@ public class account {
             //将sendBlock添加到发送方的区块链中
             sendBlock a=new sendBlock();
             a.previous=this.ownBlockchain.getLast().hash;
-            a.destination=des.address;
+            a.destination=des.privateKey.toString();
             a.balance=this.balance;
             a.work=amount;
             a.signature=this.signature;
@@ -110,27 +126,7 @@ public class account {
 
 
     }
-    public byte[] signature1;
-    //创建签名
-    public void generateSignature(PrivateKey privateKey) {
-        String data = StringUtil.getStringFromKey(sender) + StringUtil.getStringFromKey(reciepient) + Float.toString(value)	;
-        byte[] signature1 = StringUtil.applyECDSASig(privateKey,data);
-    }
-    
-    //验证签名
-    public boolean verifySignature() {
-        String data = StringUtil.getStringFromKey(sender) + StringUtil.getStringFromKey(reciepient) + Float.toString(value)	;
-        return StringUtil.verifyECDSASig(sender, data, signature1);
-    }
 
-    private String calulateHash() {
-        sequence++; //增加序列以避免两个具有相同哈希值的相同事务
-        return StringUtil.applySha256(
-                StringUtil.getStringFromKey(sender) +
-                        StringUtil.getStringFromKey(reciepient) +
-                        Float.toString(value) + sequence
-        );
-    }
 
 
 }
